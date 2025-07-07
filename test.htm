@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>三建築升級水晶計算器</title>
+
+  <style>
+    :root {
+      --bg-color: #fff;
+      --text-color: #000;
+      --border-color: #ccc;
+      --input-bg: #fff;
+      --input-text: #000;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #eee;
+      --border-color: #666;
+      --input-bg: #333;
+      --input-text: #eee;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    input, select, button {
+      font-size: 16px;
+      padding: 6px;
+      margin: 4px 0;
+      background-color: var(--input-bg);
+      color: var(--input-text);
+      border: 1px solid var(--border-color);
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 16px;
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    td, th {
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    .dark-toggle {
+      margin-bottom: 15px;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .level-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .level-row .label {
+      min-width: 100px;
+      text-align: right;
+    }
+
+    .level-row input,
+    .level-row select {
+      width: 80px;
+    }
+
+    .level-row .arrow {
+      font-weight: bold;
+    }
+
+    /* 新增：現有材料數量輸入行 */
+    .have-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .have-row .label {
+      min-width: 150px;
+      text-align: right;
+    }
+    .have-row input {
+      width: 100px;
+    }
+
+    @media (max-width: 600px) {
+      input, select, button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      table, td, th {
+        font-size: 14px;
+      }
+
+      .level-row, .have-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .level-row .label, .have-row .label {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h2>三建築升級水晶查詢（Lv1~Lv25）</h2>
+
+  <div class="dark-toggle">
+    <button id="darkToggleBtn" onclick="toggleDarkMode()">切換黑暗模式</button>
+  </div>
+
+  <!-- 等級輸入 -->
+  <div class="level-row">
+    <label class="label">監獄 Lv：</label>
+    <input type="number" id="lvPrison" min="1" max="25" value="1" />
+    <span class="arrow">→</span>
+    <select id="targetPrison"></select>
+  </div>
+
+  <div class="level-row">
+    <label class="label">戰爭大廳 Lv：</label>
+    <input type="number" id="lvHall" min="1" max="25" value="1" />
+    <span class="arrow">→</span>
+    <select id="targetHall"></select>
+  </div>
+
+  <div class="level-row">
+    <label class="label">祭壇 Lv：</label>
+    <input type="number" id="lvAltar" min="1" max="25" value="1" />
+    <span class="arrow">→</span>
+    <select id="targetAltar"></select>
+  </div>
+
+  <!-- 新增：現有材料輸入 -->
+  <h3>現有材料數量（未花費）</h3>
+  <div class="have-row">
+    <label class="label">監獄材料：</label>
+    <input type="number" id="havePrison" min="0" value="0" />
+  </div>
+  <div class="have-row">
+    <label class="label">戰爭大廳材料：</label>
+    <input type="number" id="haveHall" min="0" value="0" />
+  </div>
+  <div class="have-row">
+    <label class="label">祭壇材料：</label>
+    <input type="number" id="haveAltar" min="0" value="0" />
+  </div>
+  <div class="have-row">
+    <label class="label">現有水晶：</label>
+    <input type="number" id="haveCrystal" min="0" value="0" />
+  </div>
+
+  <div id="errorMsg" class="error"></div>
+
+  <button onclick="calculateAll()">查詢</button>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    // 頁面載入設定
+    window.onload = () => {
+      if (localStorage.getItem("darkMode") === "on") {
+        document.body.classList.add("dark");
+      }
+      updateDarkModeButton();
+      populateTargetLevels();
+    };
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+      const isDark = document.body.classList.contains("dark");
+      localStorage.setItem("darkMode", isDark ? "on" : "off");
+      updateDarkModeButton();
+    }
+
+    function updateDarkModeButton() {
+      const btn = document.getElementById("darkToggleBtn");
+      const isDark = document.body.classList.contains("dark");
+      btn.textContent = isDark ? "切換亮色模式" : "切換黑暗模式";
+    }
+
+    // 建立目標等級下拉選單，預設25
+    function populateTargetLevels() {
+      const ids = ["targetPrison", "targetHall", "targetAltar"];
+      for (const id of ids) {
+        const sel = document.getElementById(id);
+        for (let i = 1; i <= 25; i++) {
+          const opt = document.createElement("option");
+          opt.value = i;
+          opt.text = i;
+          if (i === 25) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+    }
+
+    const materialCosts = [
+      1, 2, 5, 12, 20, 30, 45, 60, 85, 100,
+      120, 150, 180, 250, 340,
+      500, 700, 900, 1200, 1500,
+      1800, 2100, 2400, 3000, 4500
+    ];
+
+    const priceTiers = [
+      { qty: 1000, cost: 10000 },
+      { qty: 100, cost: 1100 },
+      { qty: 10, cost: 120 },
+      { qty: 1, cost: 15 }
+    ];
+
+    function calculateCrystals(needed) {
+      let remaining = needed;
+      let total = 0;
+      let detail = "";
+
+      for (const tier of priceTiers) {
+        const count = Math.floor(remaining / tier.qty);
+        if (count > 0) {
+          total += count * tier.cost;
+          detail += `買 ${tier.qty}x${count}（${count * tier.qty}）→ ${count * tier.cost} 水晶<br>`;
+          remaining -= count * tier.qty;
+        }
+      }
+
+      if (remaining > 0) {
+        total += remaining * 15;
+        detail += `買 1x${remaining} → ${remaining * 15} 水晶<br>`;
+      }
+
+      return { total, detail };
+    }
+
+    function calculateAll() {
+      // 讀取等級與目標等級
+      const lvPrison = parseInt(document.getElementById("lvPrison").value);
+      const lvHall = parseInt(document.getElementById("lvHall").value);
+      const lvAltar = parseInt(document.getElementById("lvAltar").value);
+      const targetPrison = parseInt(document.getElementById("targetPrison").value);
+      const targetHall = parseInt(document.getElementById("targetHall").value);
+      const targetAltar = parseInt(document.getElementById("targetAltar").value);
+
+      // 讀取現有材料與水晶
+      const havePrison = parseInt(document.getElementById("havePrison").value) || 0;
+      const haveHall = parseInt(document.getElementById("haveHall").value) || 0;
+      const haveAltar = parseInt(document.getElementById("haveAltar").value) || 0;
+      const haveCrystal = parseInt(document.getElementById("haveCrystal").value) || 0;
+
+      const errorDiv = document.getElementById("errorMsg");
+      const resultDiv = document.getElementById("result");
+      errorDiv.innerHTML = "";
+
+      // 驗證等級輸入合理
+      const invalid = [];
+      if (isNaN(lvPrison) || lvPrison < 1 || lvPrison >= targetPrison) invalid.push("監獄");
+      if (isNaN(lvHall) || lvHall < 1 || lvHall >= targetHall) invalid.push("戰爭大廳");
+      if (isNaN(lvAltar) || lvAltar < 1 || lvAltar >= targetAltar) invalid.push("祭壇");
+
+      if (invalid.length > 0) {
+        errorDiv.innerHTML = `⚠️ 錯誤：等級必須小於目標等級（1～25）：${invalid.join("、")}`;
+        resultDiv.innerHTML = "";
+        return;
+      }
+
+      // 造建築資料陣列
+      const builds = [
+        { name: "監獄", level: lvPrison, target: targetPrison, have: havePrison },
+        { name: "戰爭大廳", level: lvHall, target: targetHall, have: haveHall },
+        { name: "祭壇", level: lvAltar, target: targetAltar, have: haveAltar }
+      ];
+
+      let totalCrystal = 0;
+      let html = "<table><tr><th>建築</th><th>等級</th><th>需材料</th><th>需水晶</th><th>購買分解</th></tr>";
+
+      for (const b of builds) {
+        let levelDetails = "";
+        let neededMaterials = 0;
+
+        // 計算每級需要的材料
+        for (let i = b.level; i < b.target; i++) {
+          const mat = materialCosts[i];
+          neededMaterials += mat;
+          levelDetails += `${b.name} Lv${i}→Lv${i + 1}：${mat} 材料<br>`;
+        }
+
+        // 扣除現有材料，不能小於0
+        let finalNeeded = neededMaterials - b.have;
+        if (finalNeeded < 0) finalNeeded = 0;
+
+        // 計算水晶
+        const { total, detail } = calculateCrystals(finalNeeded);
+        totalCrystal += total;
+
+        html += `<tr>
+          <td>${b.name}</td>
+          <td>Lv${b.level} → Lv${b.target}</td>
+          <td>${neededMaterials} - ${b.have} = <b>${finalNeeded}</b><br><div style="font-size:12px;">${levelDetails}</div></td>
+          <td>${total}</td>
+          <td>${detail}</td>
+        </tr>`;
+      }
+
+      // 扣除現有水晶
+      let finalCrystal = totalCrystal - haveCrystal;
+      if (finalCrystal < 0) finalCrystal = 0;
+
+      html += `</table><br><b>三建築總共需要水晶：${totalCrystal} - ${haveCrystal} = <span style="color:green;">${finalCrystal}</span></b>`;
+      resultDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
