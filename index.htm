@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>三建築升級水晶計算器</title>
-
   <style>
     :root {
       --bg-color: #fff;
@@ -126,7 +125,6 @@
     }
   </style>
 </head>
-
 <body>
   <h2>三建築升級水晶查詢（Lv1~Lv25）</h2>
 
@@ -134,7 +132,7 @@
     <button id="darkToggleBtn" onclick="toggleDarkMode()">切換黑暗模式</button>
   </div>
 
-  <!-- 等級輸入 -->
+  <!-- 建築等級 -->
   <div class="level-row">
     <label class="label">監獄 Lv：</label>
     <input type="number" id="lvPrison" min="1" max="25" value="1" />
@@ -156,7 +154,7 @@
     <select id="targetAltar"></select>
   </div>
 
-  <!-- 現有材料輸入 -->
+  <!-- 材料 -->
   <h3>現有材料數量（未花費）</h3>
   <div class="have-row">
     <label class="label">監獄材料：</label>
@@ -176,9 +174,7 @@
   </div>
 
   <div id="errorMsg" class="error"></div>
-
   <button onclick="calculateAll()">查詢</button>
-
   <div class="result" id="result"></div>
 
   <script>
@@ -198,21 +194,13 @@
 
     function toggleDarkMode() {
       document.body.classList.toggle("dark");
-      const isDark = document.body.classList.contains("dark");
-      localStorage.setItem("darkMode", isDark ? "on" : "off");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark") ? "on" : "off");
       updateDarkModeButton();
     }
 
     function updateDarkModeButton() {
-      const btn = document.getElementById("darkToggleBtn");
-      const isDark = document.body.classList.contains("dark");
-      btn.textContent = isDark ? "切換亮色模式" : "切換黑暗模式";
-    }
-
-    function populateTargetLevels() {
-      updateTargetOptions("lvPrison", "targetPrison");
-      updateTargetOptions("lvHall", "targetHall");
-      updateTargetOptions("lvAltar", "targetAltar");
+      document.getElementById("darkToggleBtn").textContent =
+        document.body.classList.contains("dark") ? "切換亮色模式" : "切換黑暗模式";
     }
 
     function updateTargetOptions(inputId, targetId) {
@@ -220,11 +208,28 @@
       const targetSelect = document.getElementById(targetId);
       targetSelect.innerHTML = "";
 
+      if (currentLevel >= 25) {
+        const opt = document.createElement("option");
+        opt.text = "已滿級";
+        opt.disabled = true;
+        opt.selected = true;
+        targetSelect.appendChild(opt);
+        targetSelect.disabled = true;
+        return;
+      }
+
+      targetSelect.disabled = false;
       for (let i = currentLevel + 1; i <= 25; i++) {
         const opt = document.createElement("option");
         opt.value = i;
         opt.text = i;
         targetSelect.appendChild(opt);
+      }
+
+      if (targetSelect.querySelector('option[value="25"]')) {
+        targetSelect.value = "25";
+      } else {
+        targetSelect.selectedIndex = 0;
       }
     }
 
@@ -257,7 +262,6 @@
       const targetPrison = parseInt(document.getElementById("targetPrison").value);
       const targetHall = parseInt(document.getElementById("targetHall").value);
       const targetAltar = parseInt(document.getElementById("targetAltar").value);
-
       const havePrison = parseInt(document.getElementById("havePrison").value) || 0;
       const haveHall = parseInt(document.getElementById("haveHall").value) || 0;
       const haveAltar = parseInt(document.getElementById("haveAltar").value) || 0;
@@ -319,23 +323,20 @@
       resultDiv.innerHTML = html;
     }
 
-    // 初始化
     window.onload = () => {
       if (localStorage.getItem("darkMode") === "on") {
         document.body.classList.add("dark");
       }
       updateDarkModeButton();
-      populateTargetLevels();
 
-      // 綁定事件：輸入目前等級時，更新對應目標下拉選單
-      document.getElementById("lvPrison").addEventListener("change", () => updateTargetOptions("lvPrison", "targetPrison"));
-      document.getElementById("lvHall").addEventListener("change", () => updateTargetOptions("lvHall", "targetHall"));
-      document.getElementById("lvAltar").addEventListener("change", () => updateTargetOptions("lvAltar", "targetAltar"));
+      updateTargetOptions("lvPrison", "targetPrison");
+      updateTargetOptions("lvHall", "targetHall");
+      updateTargetOptions("lvAltar", "targetAltar");
+
+      document.getElementById("lvPrison").addEventListener("input", () => updateTargetOptions("lvPrison", "targetPrison"));
+      document.getElementById("lvHall").addEventListener("input", () => updateTargetOptions("lvHall", "targetHall"));
+      document.getElementById("lvAltar").addEventListener("input", () => updateTargetOptions("lvAltar", "targetAltar"));
     };
-  </script>
-</body>
-</html>
-
   </script>
 </body>
 </html>
