@@ -88,7 +88,6 @@
       font-weight: bold;
     }
 
-    /* 新增：現有材料數量輸入行 */
     .have-row {
       display: flex;
       align-items: center;
@@ -96,10 +95,12 @@
       gap: 10px;
       flex-wrap: wrap;
     }
+
     .have-row .label {
       min-width: 150px;
       text-align: right;
     }
+
     .have-row input {
       width: 100px;
     }
@@ -155,7 +156,7 @@
     <select id="targetAltar"></select>
   </div>
 
-  <!-- 新增：現有材料輸入 -->
+  <!-- 現有材料輸入 -->
   <h3>現有材料數量（未花費）</h3>
   <div class="have-row">
     <label class="label">監獄材料：</label>
@@ -181,14 +182,19 @@
   <div class="result" id="result"></div>
 
   <script>
-    // 頁面載入設定
-    window.onload = () => {
-      if (localStorage.getItem("darkMode") === "on") {
-        document.body.classList.add("dark");
-      }
-      updateDarkModeButton();
-      populateTargetLevels();
-    };
+    const materialCosts = [
+      1, 2, 5, 12, 20, 30, 45, 60, 85, 100,
+      120, 150, 180, 250, 340,
+      500, 700, 900, 1200, 1500,
+      1800, 2100, 2400, 3000, 4500
+    ];
+
+    const priceTiers = [
+      { qty: 1000, cost: 10000 },
+      { qty: 100, cost: 1100 },
+      { qty: 10, cost: 120 },
+      { qty: 1, cost: 15 }
+    ];
 
     function toggleDarkMode() {
       document.body.classList.toggle("dark");
@@ -203,34 +209,24 @@
       btn.textContent = isDark ? "切換亮色模式" : "切換黑暗模式";
     }
 
-    // 建立目標等級下拉選單，預設25
     function populateTargetLevels() {
-      const ids = ["targetPrison", "targetHall", "targetAltar"];
-      for (const id of ids) {
-        const sel = document.getElementById(id);
-        for (let i = 1; i <= 25; i++) {
-          const opt = document.createElement("option");
-          opt.value = i;
-          opt.text = i;
-          if (i === 25) opt.selected = true;
-          sel.appendChild(opt);
-        }
-      }
+      updateTargetOptions("lvPrison", "targetPrison");
+      updateTargetOptions("lvHall", "targetHall");
+      updateTargetOptions("lvAltar", "targetAltar");
     }
 
-    const materialCosts = [
-      1, 2, 5, 12, 20, 30, 45, 60, 85, 100,
-      120, 150, 180, 250, 340,
-      500, 700, 900, 1200, 1500,
-      1800, 2100, 2400, 3000, 4500
-    ];
+    function updateTargetOptions(inputId, targetId) {
+      const currentLevel = parseInt(document.getElementById(inputId).value) || 1;
+      const targetSelect = document.getElementById(targetId);
+      targetSelect.innerHTML = "";
 
-    const priceTiers = [
-      { qty: 1000, cost: 10000 },
-      { qty: 100, cost: 1100 },
-      { qty: 10, cost: 120 },
-      { qty: 1, cost: 15 }
-    ];
+      for (let i = currentLevel + 1; i <= 25; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.text = i;
+        targetSelect.appendChild(opt);
+      }
+    }
 
     function calculateCrystals(needed) {
       let remaining = needed;
@@ -255,7 +251,6 @@
     }
 
     function calculateAll() {
-      // 讀取等級與目標等級
       const lvPrison = parseInt(document.getElementById("lvPrison").value);
       const lvHall = parseInt(document.getElementById("lvHall").value);
       const lvAltar = parseInt(document.getElementById("lvAltar").value);
@@ -263,7 +258,6 @@
       const targetHall = parseInt(document.getElementById("targetHall").value);
       const targetAltar = parseInt(document.getElementById("targetAltar").value);
 
-      // 讀取現有材料與水晶
       const havePrison = parseInt(document.getElementById("havePrison").value) || 0;
       const haveHall = parseInt(document.getElementById("haveHall").value) || 0;
       const haveAltar = parseInt(document.getElementById("haveAltar").value) || 0;
@@ -273,7 +267,6 @@
       const resultDiv = document.getElementById("result");
       errorDiv.innerHTML = "";
 
-      // 驗證等級輸入合理
       const invalid = [];
       if (isNaN(lvPrison) || lvPrison < 1 || lvPrison >= targetPrison) invalid.push("監獄");
       if (isNaN(lvHall) || lvHall < 1 || lvHall >= targetHall) invalid.push("戰爭大廳");
@@ -285,7 +278,6 @@
         return;
       }
 
-      // 造建築資料陣列
       const builds = [
         { name: "監獄", level: lvPrison, target: targetPrison, have: havePrison },
         { name: "戰爭大廳", level: lvHall, target: targetHall, have: haveHall },
@@ -299,18 +291,15 @@
         let levelDetails = "";
         let neededMaterials = 0;
 
-        // 計算每級需要的材料
         for (let i = b.level; i < b.target; i++) {
           const mat = materialCosts[i];
           neededMaterials += mat;
           levelDetails += `${b.name} Lv${i}→Lv${i + 1}：${mat} 材料<br>`;
         }
 
-        // 扣除現有材料，不能小於0
         let finalNeeded = neededMaterials - b.have;
         if (finalNeeded < 0) finalNeeded = 0;
 
-        // 計算水晶
         const { total, detail } = calculateCrystals(finalNeeded);
         totalCrystal += total;
 
@@ -323,13 +312,30 @@
         </tr>`;
       }
 
-      // 扣除現有水晶
       let finalCrystal = totalCrystal - haveCrystal;
       if (finalCrystal < 0) finalCrystal = 0;
 
       html += `</table><br><b>三建築總共需要水晶：${totalCrystal} - ${haveCrystal} = <span style="color:green;">${finalCrystal}</span></b>`;
       resultDiv.innerHTML = html;
     }
+
+    // 初始化
+    window.onload = () => {
+      if (localStorage.getItem("darkMode") === "on") {
+        document.body.classList.add("dark");
+      }
+      updateDarkModeButton();
+      populateTargetLevels();
+
+      // 綁定事件：輸入目前等級時，更新對應目標下拉選單
+      document.getElementById("lvPrison").addEventListener("change", () => updateTargetOptions("lvPrison", "targetPrison"));
+      document.getElementById("lvHall").addEventListener("change", () => updateTargetOptions("lvHall", "targetHall"));
+      document.getElementById("lvAltar").addEventListener("change", () => updateTargetOptions("lvAltar", "targetAltar"));
+    };
+  </script>
+</body>
+</html>
+
   </script>
 </body>
 </html>
