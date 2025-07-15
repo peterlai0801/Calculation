@@ -12,7 +12,6 @@
       --input-bg: #fff;
       --input-text: #000;
     }
-
     body.dark {
       --bg-color: #121212;
       --text-color: #eee;
@@ -20,14 +19,12 @@
       --input-bg: #333;
       --input-text: #eee;
     }
-
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
       background-color: var(--bg-color);
       color: var(--text-color);
     }
-
     input, select, button {
       font-size: 16px;
       padding: 6px;
@@ -36,35 +33,29 @@
       color: var(--input-text);
       border: 1px solid var(--border-color);
     }
-
     .result {
       margin-top: 20px;
       font-size: 16px;
       overflow-x: auto;
     }
-
     table {
       border-collapse: collapse;
       width: 100%;
       margin-top: 10px;
     }
-
     td, th {
       border: 1px solid var(--border-color);
       padding: 6px 10px;
       text-align: left;
     }
-
     .dark-toggle {
       margin-bottom: 15px;
     }
-
     .error {
       color: red;
       font-weight: bold;
       margin-top: 10px;
     }
-
     .level-row {
       display: flex;
       align-items: center;
@@ -72,21 +63,17 @@
       gap: 10px;
       flex-wrap: wrap;
     }
-
     .level-row .label {
       min-width: 100px;
       text-align: right;
     }
-
     .level-row input,
     .level-row select {
       width: 80px;
     }
-
     .level-row .arrow {
       font-weight: bold;
     }
-
     .have-row {
       display: flex;
       align-items: center;
@@ -94,31 +81,25 @@
       gap: 10px;
       flex-wrap: wrap;
     }
-
     .have-row .label {
       min-width: 150px;
       text-align: right;
     }
-
     .have-row input {
       width: 100px;
     }
-
     @media (max-width: 600px) {
       input, select, button {
         width: 100%;
         box-sizing: border-box;
       }
-
       table, td, th {
         font-size: 14px;
       }
-
       .level-row, .have-row {
         flex-direction: column;
         align-items: flex-start;
       }
-
       .level-row .label, .have-row .label {
         text-align: left;
       }
@@ -132,7 +113,6 @@
     <button id="darkToggleBtn" onclick="toggleDarkMode()">切換黑暗模式</button>
   </div>
 
-  <!-- 建築等級 -->
   <div class="level-row">
     <label class="label">監獄 Lv：</label>
     <input type="number" id="lvPrison" min="1" max="25" value="1" />
@@ -154,7 +134,6 @@
     <select id="targetAltar"></select>
   </div>
 
-  <!-- 材料 -->
   <h3>現有材料數量（未花費）</h3>
   <div class="have-row">
     <label class="label">監獄材料：</label>
@@ -174,7 +153,9 @@
   </div>
 
   <div id="errorMsg" class="error"></div>
+
   <button onclick="calculateAll()">查詢</button>
+
   <div class="result" id="result"></div>
 
   <script>
@@ -270,6 +251,13 @@
       const errorDiv = document.getElementById("errorMsg");
       const resultDiv = document.getElementById("result");
       errorDiv.innerHTML = "";
+
+      // 新增檢查：建築目前等級不能超過 25
+      if (lvPrison > 25 || lvHall > 25 || lvAltar > 25) {
+        errorDiv.innerHTML = `⚠️ 錯誤：建築等級不能超過 25 級`;
+        resultDiv.innerHTML = "";
+        return;
+      }
 
       const invalid = [];
       if (isNaN(lvPrison) || lvPrison < 1 || lvPrison >= targetPrison) invalid.push("監獄");
